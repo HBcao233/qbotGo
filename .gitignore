@@ -9,3 +9,4 @@ config.yaml
 device.json
 qrcode.png
 session.token
+bot.log
