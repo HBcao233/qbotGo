@@ -2,7 +2,8 @@
 
 build/
 logs/
-data/
+/data/
+test/
 config.yml
 config.yaml
 device.json

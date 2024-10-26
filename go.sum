@@ -16,8 +16,8 @@ github.com/fumiama/imgsz v0.0.2/go.mod h1:dR71mI3I2O5u6+PCpd47M9TZptzP+39tRBcbdI
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db h1:woRePGFeVFfLKN/pOkfl+p/TAqKOfFu+7KPlMVpok/w=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
-github.com/hbcao233/MiraiGo-Template v0.0.0-20241025190806-c2045fe9784d h1:46AfkqpLvurFyAZx+DI65ECCTOB/yd4kkiS7MIGrEPU=
-github.com/hbcao233/MiraiGo-Template v0.0.0-20241025190806-c2045fe9784d/go.mod h1:Ky1tg99Oe9/h5oTSKdp9zTjUhxUYjiJg3uaczxfL9Ns=
+github.com/hbcao233/MiraiGo-Template v0.0.0-20241026015311-1dcc63ac3184 h1:XrZFfFf43KQquyBHOMRh50ANEcVQkg87wTlCqH4qf34=
+github.com/hbcao233/MiraiGo-Template v0.0.0-20241026015311-1dcc63ac3184/go.mod h1:Ky1tg99Oe9/h5oTSKdp9zTjUhxUYjiJg3uaczxfL9Ns=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
