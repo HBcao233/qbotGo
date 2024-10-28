@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/Logiase/MiraiGo-Template/bot"
+	"github.com/Logiase/MiraiGo-Template/client"
 	"github.com/Logiase/MiraiGo-Template/global/coolq"
 	"github.com/Mrs4s/MiraiGo/message"
 
@@ -104,7 +104,7 @@ func twitter(bot *coolq.CQBot, event *coolq.Event) {
 
 func init() {
 	Init()
-	bot.AddHandler(twitter)
+	client.AddHandler(twitter)
 }
 
 func containsInt(slice interface{}, element int64) bool {
