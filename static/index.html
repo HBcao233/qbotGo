@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Responsive Web App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+
+    .container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+    }
+
+    .peer_list {
+      width: 300px;
+      height: 100%;
+      list-style-type: none;
+      overflow: auto;
+      color: transparent;
+      text-shadow: 0 0 #000;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .peer_list::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .peer_list::-webkit-scrollbar-track {
+      background-color: white;
+    }
+
+    .peer_list::-webkit-scrollbar-thumb {
+      background-color: #eee;
+    }
+
+
+    .peer {
+      padding-left: 10px;
+      display: flex;
+      height: 60px;
+      align-items: center;
+      border: 1px solid #eee;
+    }
+
+    .peer.active {
+      background-color: #f297c2;
+    }
+
+    .peer_avatar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    .peer_avatar>img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .peer_name {
+      display: flex;
+      align-items: center;
+      margin-left: 10px;
+    }
+
+
+    .messages {
+      list-style: none;
+      overflow: auto;
+      width: calc(100% - 300px);
+    }
+
+    .messages>.message {
+      word-wrap: break-word;
+      display: flex;
+      padding: 10px;
+    }
+
+    .message .sender_avatar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    .message .sender_avatar>img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .message .message_body {
+      padding-left: 10px;
+      max-width: 80%;
+    }
+
+    .message .sender_info {
+      color: #a19697;
+    }
+
+    .message .message_content {
+      background-color: #f297c2;
+      color: #22191d;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+  <script>
+    var requesting = false;
+    function get(url, func) {
+      return new Promise((resolve, reject) => {
+        var r = new XMLHttpRequest();
+        r.open('GET', url, true);
+        r.send();
+        r.onreadystatechange = function () {
+          console.log(r.readyState)
+          if (r.readyState == 4 && r.status == 200) {
+            try {
+              let res = JSON.parse(r.responseText)
+              resolve(res)
+            } catch (e) {
+              resolve(r.responseText)
+            }
+          } else if (r.readyState == 4) {
+            reject()
+          }
+        }
+      });
+    }
+
+    function fetchImage(url) {
+      return fetch(url, {
+        method: "GET",
+        referrer: "",
+        mode: 'no-cors',
+        referrerPolicy: 'no-referrer',
+      }).then(response => response.blob());
+    }
+
+    function parseMessageContent(elements) {
+      return new Promise(async (resolve, reject) => {
+        if (elements[0].Content) {
+          let node = document.createTextNode(elements[0].Content)
+          resolve(node)
+        }
+        if (elements[0].ImageId) {
+          let img = document.createElement('img');
+          img.src = elements[0].Url;
+          img.referrerPolicy = "no-referrer"
+          img.style.width = "100%"
+          resolve(img)
+
+          // let blob = await fetchImage();
+          // let reader = new FileReader()
+          // reader.onload = function (event) {
+
+          // }
+          // reader.readAsDataURL(blob)
+        }
+      })
+    }
+
+    document.onclick = async function (e) {
+      if (requesting) return;
+      if (t = e.target.closest('.peer')) {
+        document.querySelectorAll(".peer").forEach(i => {
+          i.classList.remove("active")
+        })
+        t.classList.add("active")
+
+        let code = t.getAttribute("data-code")
+        let storage = JSON.parse(window.sessionStorage.getItem("messages"))
+        if (!storage) {
+          storage = {}
+        }
+        if (!storage[code]) {
+          requesting = true;
+          let res = await get('/api/group/getMessages?code=' + code)
+          requesting = false;
+          console.log(res)
+          storage[code] = res.data.messages
+          window.sessionStorage.setItem("messages", JSON.stringify(storage))
+        }
+
+        let ul = document.querySelector(".messages")
+        ul.innerHTML = ""
+        console.log(storage[code])
+        storage[code].forEach(async (m) => {
+          let li = document.createElement("li")
+          li.classList.add("message")
+          let avatar = document.createElement("div")
+          avatar.classList.add("sender_avatar")
+          let img = document.createElement("img")
+          img.src = 'https://q1.qlogo.cn/g?b=qq&nk=' + m.sender.uin + '&s=640'
+          img.referrerPolicy = "no-referrer"
+          avatar.appendChild(img)
+
+          let body = document.createElement("div")
+          body.classList.add("message_body")
+          let sender = document.createElement("div")
+          sender.classList.add("sender_info")
+          sender.appendChild(document.createTextNode(m.sender.nickname + ' (' + m.sender.uin + ')'))
+          let content = document.createElement("div")
+          content.classList.add("message_content")
+          content.appendChild(await parseMessageContent(m.elements))
+
+
+          body.appendChild(sender)
+          body.appendChild(content)
+
+          li.appendChild(avatar)
+          li.appendChild(body)
+          ul.appendChild(li)
+        })
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <ul class="peer_list">
+      {{ range $index, $item := .GroupList }}
+      <li class="peer" data-code="{{$item.Code}}">
+        <div class="peer_avatar">
+          <img src="https://p.qlogo.cn/gh/{{ $item.Code }}/{{ $item.Code }}/640/" />
+        </div>
+        <div class="peer_name">
+          {{ $item.Name }} ({{ $item.Code }})
+        </div>
+      </li>
+      {{ end }}
+    </ul>
+    <ul class="messages"></ul>
+  </div>
+
+
+</body>
+
+</html>
