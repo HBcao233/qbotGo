@@ -1,11 +1,13 @@
 package twitter
 
 import (
-	"encoding/json"
+	"bytes"
+	"crypto/rand"
 	"reflect"
 	"regexp"
 
 	"github.com/Logiase/MiraiGo-Template/client"
+	"github.com/Logiase/MiraiGo-Template/global"
 	"github.com/Logiase/MiraiGo-Template/global/coolq"
 	"github.com/Mrs4s/MiraiGo/message"
 
@@ -70,36 +72,46 @@ func twitter(bot *coolq.CQBot, event *coolq.Event) {
 		result = append(result, fpath)
 	}
 
-	m := []interface{}{
-		map[string]interface{}{
-			"type": "node",
-			"data": map[string]interface{}{
-				"name":    bot.Client.Nickname,
-				"uin":     event.Raw.SelfID,
-				"content": msg,
-			},
-		},
-		map[string]interface{}{
-			"type": "node",
-			"data": map[string]interface{}{
-				"name":    bot.Client.Nickname,
-				"uin":     event.Raw.SelfID,
-				"content": "https://x.com/i/status/" + tid,
-			},
-		},
-	}
+	fm := message.NewForwardMessage().AddNode(&message.ForwardNode{
+		GroupId:    group_id,
+		SenderId:   event.Raw.SelfID,
+		SenderName: bot.Client.Nickname,
+		Message:    []message.IMessageElement{message.NewText(msg)},
+	}).AddNode(&message.ForwardNode{
+		GroupId:    group_id,
+		SenderId:   event.Raw.SelfID,
+		SenderName: bot.Client.Nickname,
+		Message:    []message.IMessageElement{message.NewText("x.com/i/status/" + tid)},
+	})
 	for _, fpath := range result {
-		m = append(m, map[string]interface{}{
-			"type": "node",
-			"data": map[string]interface{}{
-				"name":    bot.Client.Nickname,
-				"uin":     event.Raw.SelfID,
-				"content": "[CQ:image,file=file:///" + fpath + "]",
-			},
+		f := global.ReadFile(fpath)
+		if f == nil {
+			log.Error("读取图片失败")
+			return
+		}
+		token := make([]byte, 8)
+		rand.Read(token)
+		f = append(f, token...)
+
+		source := message.Source{
+			SourceType: message.SourceGroup,
+			PrimaryID:  group_id,
+		}
+		i, err := bot.Client.UploadImage(source, bytes.NewReader(f))
+		log.Infof("图片: %s", i)
+		if err != nil {
+			log.Error("图片上传失败")
+			return
+		}
+		fm.AddNode(&message.ForwardNode{
+			GroupId:    group_id,
+			SenderId:   event.Raw.SelfID,
+			SenderName: bot.Client.Nickname,
+			Message:    []message.IMessageElement{i},
 		})
 	}
-	m1, _ := json.Marshal(m)
-	bot.CQSendGroupForwardMessage(group_id, gjson.Parse(string(m1)))
+	fe := bot.Client.NewForwardMessageBuilder(group_id).Main(fm)
+	bot.Client.SendGroupForwardMessage(group_id, fe)
 }
 
 func init() {
