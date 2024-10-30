@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/HBcao233/qbotGo/util/data"
@@ -145,16 +146,60 @@ func ParseMsg(res gjson.Result) string {
 	return msg
 }
 
-func ParseMedias(res gjson.Result) []string {
+type MediaType int
+
+const (
+	Photo = 0
+	Video = 1
+)
+
+type Media struct {
+	Type     MediaType
+	Url      string
+	Thumb    string
+	Variants Variants
+}
+type Variants []Variant
+type Variant struct {
+	Bitrate int64
+	Url     string
+}
+
+func (v Variants) Len() int           { return len(v) }
+func (v Variants) Less(i, j int) bool { return v[i].Bitrate > v[j].Bitrate }
+func (v Variants) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+
+func ParseMedias(res gjson.Result) []Media {
 	tweet := res.Get("legacy")
-	result := make([]string, 0)
+	result := make([]Media, 0)
 	if !tweet.Get("extended_entities").Exists() {
 		return result
 	}
 	medias := tweet.Get("extended_entities.media")
 	medias.ForEach(func(_, media gjson.Result) bool {
-		if media.Get("type").String() == "photo" {
-			result = append(result, media.Get("media_url_https").String()+":orig")
+		switch media.Get("type").String() {
+		case "photo":
+			result = append(result, Media{
+				Type:  Photo,
+				Url:   media.Get("media_url_https").String() + ":orig",
+				Thumb: media.Get("media_url_https").String() + "::small",
+			})
+		case "video":
+			variants := make(Variants, 0)
+			media.Get("video_info.variants").ForEach(func(_, v gjson.Result) bool {
+				if v.Get("content_type").String() == "video/mp4" {
+					variants = append(variants, Variant{
+						Bitrate: v.Get("bitrate").Int(),
+						Url:     v.Get("url").String(),
+					})
+				}
+				return true
+			})
+			sort.Sort(variants)
+			result = append(result, Media{
+				Type:     Video,
+				Variants: variants,
+			})
 		}
 		return true
 	})

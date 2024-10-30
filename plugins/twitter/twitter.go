@@ -66,12 +66,6 @@ func twitter(bot *coolq.CQBot, event *coolq.Event) {
 		return
 	}
 
-	result := make([]string, 0)
-	for _, url := range medias {
-		fpath, _ := bot.CQDownloadFile(url, gjson.Result{}, 1)["data"].(map[string]any)["file"].(string)
-		result = append(result, fpath)
-	}
-
 	fm := message.NewForwardMessage().AddNode(&message.ForwardNode{
 		GroupId:    group_id,
 		SenderId:   event.Raw.SelfID,
@@ -83,26 +77,35 @@ func twitter(bot *coolq.CQBot, event *coolq.Event) {
 		SenderName: bot.Client.Nickname,
 		Message:    []message.IMessageElement{message.NewText("x.com/i/status/" + tid)},
 	})
-	for _, fpath := range result {
-		f := global.ReadFile(fpath)
-		if f == nil {
-			log.Error("读取图片失败")
-			return
-		}
-		token := make([]byte, 8)
-		rand.Read(token)
-		f = append(f, token...)
+	var i message.IMessageElement
+	for _, m := range medias {
+		switch m.Type {
+		case Photo:
+			fpath, _ := bot.CQDownloadFile(m.Url, gjson.Result{}, 1)["data"].(map[string]any)["file"].(string)
+			f := global.ReadFile(fpath)
+			if f == nil {
+				log.Error("读取图片失败")
+				return
+			}
+			token := make([]byte, 8)
+			rand.Read(token)
+			f = append(f, token...)
 
-		source := message.Source{
-			SourceType: message.SourceGroup,
-			PrimaryID:  group_id,
+			source := message.Source{
+				SourceType: message.SourceGroup,
+				PrimaryID:  group_id,
+			}
+			var err error
+			i, err = bot.Client.UploadImage(source, bytes.NewReader(f))
+			if err != nil {
+				log.Error("图片上传失败")
+				return
+			}
+		case Video:
+			url := m.Variants[0].Url
+			i = message.NewText("[视频: " + url + "]")
 		}
-		i, err := bot.Client.UploadImage(source, bytes.NewReader(f))
-		log.Infof("图片: %s", i)
-		if err != nil {
-			log.Error("图片上传失败")
-			return
-		}
+
 		fm.AddNode(&message.ForwardNode{
 			GroupId:    group_id,
 			SenderId:   event.Raw.SelfID,
@@ -111,7 +114,10 @@ func twitter(bot *coolq.CQBot, event *coolq.Event) {
 		})
 	}
 	fe := bot.Client.NewForwardMessageBuilder(group_id).Main(fm)
-	bot.Client.SendGroupForwardMessage(group_id, fe)
+	m := bot.Client.SendGroupForwardMessage(group_id, fe)
+	if m == nil || m.Id == -1 {
+		log.Warn("合并转发消息发送失败，可能被风控")
+	}
 }
 
 func init() {
